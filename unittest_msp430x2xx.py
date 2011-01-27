@@ -201,9 +201,8 @@ class TestFunctions(unittest.TestCase):
             ["MOV #0x2edf,&0x0172       ",    [0xb240 ,0xdf2e ,0x7201 ]],
             ["MOV #0x8,R15              ",    [0x3f42 ]],
             ["MOV R15,SR                ",    [0x024f ]],
-            ["JMP 0xf874                ",    [0x0000 ,0x74f8 ]],
+            ["JMP 0xf874                ",    [0xfc74 ]],
             ["XOR.B #0x41,&0x0021       ",    [0xf2e0 ,0x4100 ,0x2100 ]],
-            ["RETI                      ",    [0x0013 ]],
             ["RETI                      ",    [0x0013 ]],
             ]
 

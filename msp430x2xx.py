@@ -18,13 +18,10 @@ class OPcode(object):
         self.JUMP   = 2
         self.mnemonic = (
                 ("rrc",   0x1000 , self.SINGLE ),
-                ("rrc.b", 0x1040 , self.SINGLE ),
                 ("swpb",  0x1080 , self.SINGLE ),
                 ("rra",   0x1100 , self.SINGLE ),
-                ("rra.b", 0x1140 , self.SINGLE ),
                 ("sxt",   0x1180 , self.SINGLE ),
                 ("push",  0x1200 , self.SINGLE ),
-                ("push.b",0x1240 , self.SINGLE ),
                 ("call",  0x1280 , self.SINGLE ),
                 ("reti",  0x1300 , self.SINGLE ),
                 ("jne",   0x2000 , self.JUMP ),
@@ -53,7 +50,9 @@ class OPcode(object):
         nm = nm.lower()
         if nm[-2:] == ".b":
             bwmode = 0x0040
-            nm = nm[:-2]            
+            nm = nm[:-2]
+        elif nm[-2:] == ".w":
+            nm = nm[:-2]
         for x in self.mnemonic:
             if nm.lower() == x[0]:
                 return x[2], x[1] | bwmode
@@ -270,12 +269,16 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
         if operand == None and opcode == None:
             errorstr = self._MakeErrorMsg(liststr, 0, 'error')
             return [-1,errorstr]
-
+        
         mcode    = 0
         srcbyte  = None
         destbyte = None
 
         if operand == self.DOUBLE:
+            if len(liststr) != 3:
+                errorstr = self._MakeErrorMsg(liststr, 0, 'syntax error')
+                return [-1,errorstr]
+
             SReg, As, DReg, Ad = self.__GetDoubleOperandVal(liststr[1], liststr[2])
 
             if SReg == None or As == None:
@@ -296,20 +299,30 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
 
         elif operand == self.SINGLE:
             if opcode != 0x1300: # not reti
+                if len(liststr) != 2:
+                    errorstr = self._MakeErrorMsg(liststr, 0, 'syntax error')
+                    return [-1,errorstr]
+
                 DSReg, Ad = self.__GetSingleOperandVal(liststr[1])
                 if DSReg == None or Ad == None:
                     errorstr = self._MakeErrorMsg(liststr, 1, 'error')
                     return [-1,errorstr]
 
                 Ad = Ad << 4
-                for x in (opcode, Ad, DReg):
-                    mcode |= x
+                for x in (opcode, Ad, DSReg): mcode |= x
                 srcbyte  = self._GetNextWord(liststr[1])
             else:
                 mcode = opcode
+
         elif operand == self.JUMP:
+            if len(liststr) != 2:
+                errorstr = self._MakeErrorMsg(liststr, 0, 'syntax error')
+                return [-1,errorstr]
+
             srcbyte = GetIntValue('#'+liststr[1])
-            return [opcode | srcbyte]
+            bytes = []
+            bytes.append(self.__littleendian(opcode | srcbyte))
+            return bytes
 
         bytes = []
         for x in (mcode, srcbyte, destbyte):
