@@ -1,0 +1,4 @@
+msp430 tiny assembler
+This script require python version 3.
+Usage : python asm.py [file]
+

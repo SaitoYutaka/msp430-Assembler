@@ -260,6 +260,20 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
         errorstr += errmsg
         return errorstr
 
+    def _IsSyntaxError(self, list, operand):
+        if operand == self.DOUBLE:
+            w = 3
+        elif operand == self.SINGLE and list[0].lower() == 'reti':
+            w = 1
+        elif operand == self.SINGLE and list[0].lower() != 'reti':
+            w = 2
+        elif operand == self.JUMP:
+            w = 2
+        else: return False
+
+        if len(list) != w: return True
+        else: return False
+
     def asm(self, line):
         liststr = []
         liststr = self.__linetolist(line)
@@ -274,11 +288,11 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
         srcbyte  = None
         destbyte = None
 
-        if operand == self.DOUBLE:
-            if len(liststr) != 3:
-                errorstr = self._MakeErrorMsg(liststr, 0, 'syntax error')
-                return [-1,errorstr]
+        if self._IsSyntaxError(liststr, operand):
+            errorstr = self._MakeErrorMsg(liststr, 0, 'syntax error')
+            return [-1,errorstr]
 
+        if operand == self.DOUBLE:
             SReg, As, DReg, Ad = self.__GetDoubleOperandVal(liststr[1], liststr[2])
 
             if SReg == None or As == None:
@@ -299,10 +313,6 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
 
         elif operand == self.SINGLE:
             if opcode != 0x1300: # not reti
-                if len(liststr) != 2:
-                    errorstr = self._MakeErrorMsg(liststr, 0, 'syntax error')
-                    return [-1,errorstr]
-
                 DSReg, Ad = self.__GetSingleOperandVal(liststr[1])
                 if DSReg == None or Ad == None:
                     errorstr = self._MakeErrorMsg(liststr, 1, 'error')
@@ -315,10 +325,6 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
                 mcode = opcode
 
         elif operand == self.JUMP:
-            if len(liststr) != 2:
-                errorstr = self._MakeErrorMsg(liststr, 0, 'syntax error')
-                return [-1,errorstr]
-
             srcbyte = GetIntValue('#'+liststr[1])
             bytes = []
             bytes.append(self.__littleendian(opcode | srcbyte))
