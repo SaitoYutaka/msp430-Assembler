@@ -3,12 +3,14 @@
     rrc 0x1234(R6)
     rrc 0x1234
     rrc &0x1234
+:LABEL1
     swpb R6
     swpb 0x1234(R6)
     swpb 0x1234
     swpb &0x1234
     rra R6
     rra 0x1234(R6)
+:LABEL2
     rra 0x1234
     rra &0x1234
     sxt R6
