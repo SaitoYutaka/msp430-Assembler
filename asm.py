@@ -76,7 +76,7 @@ for line in f:
         sys.exit()
 
     tmparr.append([line,isLabel,opcode,addrnum])
-    for byte in opcode: addrnum += 4
+    for byte in opcode: addrnum += 2
     lineno += 1
 
 SOURCE  = 0
