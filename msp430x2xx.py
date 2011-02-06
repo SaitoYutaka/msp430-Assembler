@@ -256,7 +256,7 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
         errorstr += '\n'
 
         num = 0
-        for x in list(range(pos)):
+        for x in range(pos):
             num = num + errorstr[num:].find(' ') + 1
         errorstr += ' ' * num + '^\n'
         errorstr += errmsg

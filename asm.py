@@ -1,30 +1,39 @@
 import sys
 import traceback
 import msp430x2xx
+import msp430x2xx_registers
 
 def usage():
     print('usage: asm.py [file]')
 
-def deletenl(line):
+def RemoveNewLineSpaceTab(line):
     line = line.strip('\n')
     line = line.lstrip()
+    line = line.replace('\t',' ')
     return line
 
-def getLabel(s):
-    if s.find(' ') == -1: return s
+def GetLabel(s):
+    if s.find(' ') == -1:
+        return s
     else: return s[0:s.find(' ')]
 
 def GetAllLabel(f):
     dLabel = {}
     dummyval = 0
     for line in f:
-        line = deletenl(line)
+        line = RemoveNewLineSpaceTab(line)
         if line[0] == ':':
-            tmp = getLabel(line)
+            tmp = GetLabel(line)
             dLabel[tmp[1:]] = dummyval
             dummyval += 1
             continue
     return dLabel
+
+def GetReplaceLabel(line):
+    for label in dLabel.keys():
+        if label in line:
+            return label
+    return ''
 
 if len(sys.argv) == 1:
     usage()
@@ -37,53 +46,52 @@ except:
     usage()
     sys.exit()
 
-lineno = 1   
-x = msp430x2xx.MSP430x2xx()
 dLabel = GetAllLabel(f)
 f.seek(0)
 
-tmparr = []
-addrnum = 0xf800
-for line in f:
-    line = deletenl(line)
-    isLabel = ''
-    source = ''
+lineno = 1   
+assembleInfo = []
+address = 0xf800
+MSP430x2xx = msp430x2xx.MSP430x2xx()
+for readline in f:
 
-
+    line = RemoveNewLineSpaceTab(readline)
     if line == '' or line[0] == ';': continue
 
     if line[0] == ':' :
-        tmp = getLabel(line)
-        dLabel[tmp[1:]] = addrnum
-        
-        if line.replace(tmp,'') == '':continue
-        else: 
-            line = line.replace(tmp,'')
-            line = deletenl(line)
+        label = GetLabel(line)
+        dLabel[label[1:]] = address
+        if line.replace(label,'') == '':continue
+        line = RemoveNewLineSpaceTab(line)
+        line = line.replace(label,'')
 
-    for label in dLabel.keys():
-        if label in line:
-            source = line.replace(label,str(dLabel[label]))
-            isLabel = label
+    rLabel    = ''
+    asmSource = ''
+    rLabel    = GetReplaceLabel(line)
+    if rLabel == '': asmSource = line
+    else:
+        asmSource = line.replace(rLabel,str(dLabel[rLabel]))
 
-    if isLabel == '': source = line
+    for n in range(2):
+        for reg in msp430x2xx_registers.registers.keys():
+            if reg in asmSource:
+                asmSource = asmSource.replace(reg,str(msp430x2xx_registers.registers[reg]))
 
-    opcode = x.asm(source)
+    opcode = MSP430x2xx.asm(asmSource)
 
     if opcode[0] == -1:
         print(opcode[1],end='')
         print(' line:' + str(lineno))
         sys.exit()
 
-    tmparr.append([line,isLabel,opcode,addrnum])
-    for byte in opcode: addrnum += 2
+    assembleInfo.append([line,rLabel,address,opcode])
+    for byte in opcode: address += 2
     lineno += 1
+f.close()
 
-SOURCE  = 0
-LABEL   = 1
-OPCODE  = 2
-ADDRESS = 3
-for asminfo in tmparr:
+SOURCE,LABEL,ADDRESS,OPCODE = range(4)
+
+for asminfo in assembleInfo:
     print ('%-30s' % asminfo[SOURCE],end='')
     print ("0x%04x " % asminfo[ADDRESS],end='')
     if asminfo[LABEL] != '': # label?
@@ -94,5 +102,5 @@ for asminfo in tmparr:
         for byte in asminfo[OPCODE]:
             print ("0x%04x " % byte,end='')
     print()
-print(dLabel)
-f.close()
+
+
