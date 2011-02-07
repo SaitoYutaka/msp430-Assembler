@@ -2,6 +2,7 @@ import sys
 import traceback
 import msp430x2xx
 import msp430x2xx_registers
+import intelhex
 
 def usage():
     print('usage: asm.py [file]')
@@ -91,16 +92,41 @@ f.close()
 
 SOURCE,LABEL,ADDRESS,OPCODE = range(4)
 
-for asminfo in assembleInfo:
-    print ('%-30s' % asminfo[SOURCE],end='')
-    print ("0x%04x " % asminfo[ADDRESS],end='')
+for i, asminfo in enumerate(assembleInfo):
+    #print ('%-30s' % asminfo[SOURCE],end='')
+    #print ("0x%04x " % asminfo[ADDRESS],end='')
     if asminfo[LABEL] != '': # label?
         opcode = x.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(dLabel[asminfo[LABEL]])))
-        for byte in opcode:
-            print ("0x%04x " % byte,end='')
-    else:
-        for byte in asminfo[OPCODE]:
-            print ("0x%04x " % byte,end='')
-    print()
+        assembleInfo[i][OPCODE] = opcode
+        assembleInfo[i][LABEL]  = ''
+        #for byte in opcode:
+        #    print ("0x%04x " % byte,end='')
+    else:pass
+       # for byte in asminfo[OPCODE]:
+       #     print ("0x%04x " % byte,end='')
+    #print()
 
 
+data = []
+for asminfo in assembleInfo:
+    for x in asminfo[OPCODE]:
+        data.append(x)
+    
+cnt = 0
+offset = 0
+hex = []
+for x in data:
+    hex.append(x)
+    if cnt >= 7:
+        if 0xf800 + offset >= 0xffff:
+            print('size error')
+            sys.exit()
+        foo = intelhex.MakeIntelHex('00', 0xf800 + offset, hex)
+        print(foo)
+        hex = []
+        cnt = 0
+        offset += 16
+        continue
+    cnt += 1
+foo = intelhex.MakeIntelHex('00', 0xf800 + offset, hex)
+print(foo)
