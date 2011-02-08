@@ -50,14 +50,23 @@ except:
 dLabel = GetAllLabel(f)
 f.seek(0)
 
+address = 0
+orgaddress = 0
+for readline in f:
+    line = RemoveNewLineSpaceTab(readline)
+    if '.org' in line:
+        address = int(line[5:],16)
+        orgaddress = int(line[5:],16)
+
+f.seek(0)
 lineno = 1   
 assembleInfo = []
-address = 0xf800
+
 MSP430x2xx = msp430x2xx.MSP430x2xx()
 for readline in f:
 
     line = RemoveNewLineSpaceTab(readline)
-    if line == '' or line[0] == ';': continue
+    if line == '' or line[0] == ';' or line[0] == '.': continue
 
     if line[0] == ':' :
         label = GetLabel(line)
@@ -111,22 +120,23 @@ data = []
 for asminfo in assembleInfo:
     for x in asminfo[OPCODE]:
         data.append(x)
-    
+
+
 cnt = 0
 offset = 0
 hex = []
 for x in data:
     hex.append(x)
     if cnt >= 7:
-        if 0xf800 + offset >= 0xffff:
+        if orgaddress + offset >= 0xffff:
             print('size error')
             sys.exit()
-        foo = intelhex.MakeIntelHex('00', 0xf800 + offset, hex)
+        foo = intelhex.MakeIntelHex('00', orgaddress + offset, hex)
         print(foo)
         hex = []
         cnt = 0
         offset += 16
         continue
     cnt += 1
-foo = intelhex.MakeIntelHex('00', 0xf800 + offset, hex)
+foo = intelhex.MakeIntelHex('00', orgaddress + offset, hex)
 print(foo)

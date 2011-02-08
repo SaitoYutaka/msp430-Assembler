@@ -1,4 +1,5 @@
-;; sample code 
+;; sample code
+.org 0xf800
     rrc R6
     rrc 0x1234(R6)
     rrc 0x1234
