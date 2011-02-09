@@ -4,6 +4,12 @@ import msp430x2xx
 import msp430x2xx_registers
 import intelhex
 
+class AssemblerDirectives(object):
+    def __init__(self):
+        self.ORG               = 0
+        self.IVECTOR_FLAG      = False
+        self.INTTERRUPT_VECTOR = []
+
 def usage():
     print('usage: asm.py [file]')
 
@@ -50,28 +56,50 @@ except:
 dLabel = GetAllLabel(f)
 f.seek(0)
 
-address = 0
-orgaddress = 0
+AsmDirect = AssemblerDirectives()
 for readline in f:
     line = RemoveNewLineSpaceTab(readline)
     if '.org' in line:
-        address = int(line[5:],16)
-        orgaddress = int(line[5:],16)
+        AsmDirect.ORG = int(line[5:],16)
+    elif '.ivector' in line:
+        AsmDirect.IVECTOR_FLAG = True
+        continue
+
+    if AsmDirect.IVECTOR_FLAG:
+        AsmDirect.INTTERRUPT_VECTOR.append(line)
+        if len(AsmDirect.INTTERRUPT_VECTOR) == 16:
+            AsmDirect.IVECTOR_FLAG = False
+
+
+def littleendian(num):
+    tmp1 = num & 0x00ff; tmp1 <<= 8
+    tmp2 = num & 0xff00; tmp2 >>= 8
+    return  tmp1 | tmp2
+
+for i, v in enumerate(AsmDirect.INTTERRUPT_VECTOR):
+    AsmDirect.INTTERRUPT_VECTOR[i] = littleendian(int(v,16))
 
 f.seek(0)
 lineno = 1   
 assembleInfo = []
 
+address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
 for readline in f:
 
     line = RemoveNewLineSpaceTab(readline)
-    if line == '' or line[0] == ';' or line[0] == '.': continue
+    if line == '.ivector': break
+
+    if line == '' or line[0] == ';' or line[0] == '.':
+        lineno += 1
+        continue
 
     if line[0] == ':' :
         label = GetLabel(line)
         dLabel[label[1:]] = address
-        if line.replace(label,'') == '':continue
+        if line.replace(label,'') == '':
+            lineno += 1
+            continue
         line = RemoveNewLineSpaceTab(line)
         line = line.replace(label,'')
 
@@ -125,6 +153,7 @@ for asminfo in assembleInfo:
 cnt = 0
 offset = 0
 hex = []
+orgaddress = AsmDirect.ORG
 for x in data:
     hex.append(x)
     if cnt >= 7:
@@ -139,4 +168,8 @@ for x in data:
         continue
     cnt += 1
 foo = intelhex.MakeIntelHex('00', orgaddress + offset, hex)
+print(foo)
+foo = intelhex.MakeIntelHex('00', 0xffe0, AsmDirect.INTTERRUPT_VECTOR[0:8])
+print(foo)
+foo = intelhex.MakeIntelHex('00', 0xfff0, AsmDirect.INTTERRUPT_VECTOR[9:])
 print(foo)
