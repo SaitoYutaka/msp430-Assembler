@@ -2,7 +2,7 @@ import sys
 import traceback
 import msp430x2xx
 import msp430x2xx_registers
-import intelhex
+import msp430_bin2ihex
 
 class AssemblerDirectives(object):
     def __init__(self):
@@ -82,6 +82,7 @@ for i, v in enumerate(AsmDirect.INTTERRUPT_VECTOR):
 f.seek(0)
 lineno = 1   
 assembleInfo = []
+OpcodeList   = []
 
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
@@ -123,7 +124,10 @@ for readline in f:
         sys.exit()
 
     assembleInfo.append([line,rLabel,address,opcode])
-    for byte in opcode: address += 2
+    for byte in opcode:
+        address += 2
+
+
     lineno += 1
 f.close()
 
@@ -143,33 +147,22 @@ for i, asminfo in enumerate(assembleInfo):
        #     print ("0x%04x " % byte,end='')
     #print()
 
+def Get1BytesList(data):
+    ret = []
+    for x in data:
+        ret.append((x & 0xff00) >> 8)
+        ret.append( x & 0x00ff)
+    return ret
 
-data = []
-for asminfo in assembleInfo:
-    for x in asminfo[OPCODE]:
-        data.append(x)
+for data in assembleInfo:
+    for opcode in data[OPCODE]:
+        OpcodeList.append(opcode)
+
+data = Get1BytesList(OpcodeList)
+msp430_bin2ihex.MakeIntelHexLines(AsmDirect.ORG, data)
+data = Get1BytesList(AsmDirect.INTTERRUPT_VECTOR)
+msp430_bin2ihex.MakeIntelHexLines(0xffe0, data)
+print(':00000001FF')
+sys.exit()
 
 
-cnt = 0
-offset = 0
-hex = []
-orgaddress = AsmDirect.ORG
-for x in data:
-    hex.append(x)
-    if cnt >= 7:
-        if orgaddress + offset >= 0xffff:
-            print('size error')
-            sys.exit()
-        foo = intelhex.MakeIntelHex('00', orgaddress + offset, hex)
-        print(foo)
-        hex = []
-        cnt = 0
-        offset += 16
-        continue
-    cnt += 1
-foo = intelhex.MakeIntelHex('00', orgaddress + offset, hex)
-print(foo)
-foo = intelhex.MakeIntelHex('00', 0xffe0, AsmDirect.INTTERRUPT_VECTOR[0:8])
-print(foo)
-foo = intelhex.MakeIntelHex('00', 0xfff0, AsmDirect.INTTERRUPT_VECTOR[9:])
-print(foo)
