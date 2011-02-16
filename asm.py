@@ -10,10 +10,15 @@ class AssemblerDirectives(object):
         self.ORG               = 0
         self.INTTERRUPT_VECTOR = []
 
+    def littleendian(self, num):
+        tmp1 = (num & 0x00ff) << 8
+        tmp2 = (num & 0xff00) >> 8
+        return  tmp1 | tmp2
+
     def GetAsmDirectives(self, f):
         flag    = False
         for readline in f:
-            line = RemoveNewLineSpaceTab(readline)
+            line = readline
             if '.org' in line:
                 self.ORG = int(line[5:],16)
             elif '.ivector' in line:
@@ -25,15 +30,25 @@ class AssemblerDirectives(object):
                 if len(self.INTTERRUPT_VECTOR) == 16:
                     flag = False
 
+        for i, v in enumerate(AsmDirect.INTTERRUPT_VECTOR):
+            if v[:2] == '0x':          base = 16
+            elif re.match('^[1-9]',v): base = 10
+            else: continue
+            AsmDirect.INTTERRUPT_VECTOR[i] = self.littleendian(int(v,base))
+
 
 def usage():
     print('usage: asm.py [file]')
 
-def RemoveNewLineSpaceTab(line):
-    line = line.strip('\n')
-    line = line.lstrip()
-    line = line.replace('\t',' ')
-    return line
+def RemoveNewLineSpaceTab(lines):
+    ret = []
+    for x in lines:
+        x = x.strip('\n')
+        x = x.lstrip()
+        x = x.replace('\t',' ')
+        ret.append(x)
+    return ret
+
 
 class Label(object):
     def __init__(self):
@@ -44,17 +59,29 @@ class Label(object):
             return s
         else: return s[0:s.find(' ')]
 
+    def SetAddress(self, l, addr):
+        label = self.GetLabel(l)
+        self.d[label[1:]] = addr
+
+    def IsOnlyLabelInLine(self, line):
+        for x in self.d.keys():
+            if x in line:
+                tmp = line.replace(x,'')
+                tmp = tmp.replace(':','')
+                tmp = tmp.strip()
+                if tmp == '': return True
+                else: return False
+
     def GetAllLabel(self, f):
         dummyval = 0
         for line in f:
-            line = RemoveNewLineSpaceTab(line)
             if line[0] == ':':
                 tmp = self.GetLabel(line)
                 self.d[tmp[1:]] = dummyval
                 dummyval += 1
                 continue
 
-    def GetReplaceLabel(self, line):
+    def GetLabelInLine(self, line):
         for label in self.d.keys():
             if label in line:
                 return label
@@ -75,22 +102,32 @@ except:
 allline = f.readlines()
 f.close()
 
+def Preprocess(lines):
+    ret = []
+    tmp = ''
+    for line in lines:
+        tmp = line
+        for reg in msp430x2xx_registers.registers.keys():
+            if reg in line:
+                tmp = line.replace(reg,str(msp430x2xx_registers.registers[reg]))
+                break
+        for reg in msp430x2xx_registers.registers.keys():
+            if reg in line:
+                tmp = tmp.replace(reg,str(msp430x2xx_registers.registers[reg]))
+                break
+        ret.append(tmp)
+    return ret
+
+
+lines = RemoveNewLineSpaceTab(allline)
+
+lines_after_p = Preprocess(lines)
+
 l = Label()
-l.GetAllLabel(allline)
+l.GetAllLabel(lines_after_p)
 
 AsmDirect = AssemblerDirectives()
-AsmDirect.GetAsmDirectives(allline)
-
-def littleendian(num):
-    tmp1 = num & 0x00ff; tmp1 <<= 8
-    tmp2 = num & 0xff00; tmp2 >>= 8
-    return  tmp1 | tmp2
-
-for i, v in enumerate(AsmDirect.INTTERRUPT_VECTOR):
-    if v[:2] == '0x':          base = 16
-    elif re.match('^[1-9]',v): base = 10
-    else: continue
-    AsmDirect.INTTERRUPT_VECTOR[i] = littleendian(int(v,base))
+AsmDirect.GetAsmDirectives(lines_after_p)
 
 
 lineno = 1   
@@ -99,9 +136,9 @@ OpcodeList   = []
 
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
-for readline in allline:
 
-    line = RemoveNewLineSpaceTab(readline)
+for line in lines_after_p:
+
     if line == '.ivector': break
 
     if line == '' or line[0] == ';' or line[0] == '.':
@@ -109,25 +146,16 @@ for readline in allline:
         continue
 
     if line[0] == ':' :
-        label = l.GetLabel(line)
-        l.d[label[1:]] = address
-        if line.replace(label,'') == '':
+        l.SetAddress(line, address)
+        if l.IsOnlyLabelInLine(line):
             lineno += 1
             continue
-        line = RemoveNewLineSpaceTab(line)
-        line = line.replace(label,'')
+        line = line.replace(l.GetLabel(line),'')
 
-    rLabel    = ''
-    asmSource = ''
-    rLabel    = l.GetReplaceLabel(line)
+    rLabel    = l.GetLabelInLine(line)
     if rLabel == '': asmSource = line
     else:
         asmSource = line.replace(rLabel,str(l.d[rLabel]))
-
-    for n in range(2):
-        for reg in msp430x2xx_registers.registers.keys():
-            if reg in asmSource:
-                asmSource = asmSource.replace(reg,str(msp430x2xx_registers.registers[reg]))
 
     opcode = MSP430x2xx.asm(asmSource)
 
@@ -142,7 +170,6 @@ for readline in allline:
 
 
     lineno += 1
-
 
 
 SOURCE,LABEL,ADDRESS,OPCODE = range(4)
