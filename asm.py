@@ -87,21 +87,6 @@ class Label(object):
                 return label
         return ''
 
-#if __name__ == "__main__":
-
-if len(sys.argv) == 1:
-    usage()
-    sys.exit()
-
-try:
-    f = open(sys.argv[1],'r')
-except:
-    print(sys.argv[1] + ': No such file')
-    usage()
-    sys.exit()
-allline = f.readlines()
-f.close()
-
 def Preprocess(lines):
     ret = []
     tmp = ''
@@ -118,6 +103,27 @@ def Preprocess(lines):
         ret.append(tmp)
     return ret
 
+def Get1BytesList(data):
+    ret = []
+    for x in data:
+        ret.append((x & 0xff00) >> 8)
+        ret.append( x & 0x00ff)
+    return ret
+
+#if __name__ == "__main__":
+
+if len(sys.argv) == 1:
+    usage()
+    sys.exit()
+
+try:
+    f = open(sys.argv[1],'r')
+except:
+    print(sys.argv[1] + ': No such file')
+    usage()
+    sys.exit()
+allline = f.readlines()
+f.close()
 
 lines = RemoveNewLineSpaceTab(allline)
 
@@ -129,10 +135,8 @@ l.GetAllLabel(lines_after_p)
 AsmDirect = AssemblerDirectives()
 AsmDirect.GetAsmDirectives(lines_after_p)
 
-
 lineno = 1   
 assembleInfo = []
-OpcodeList   = []
 
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
@@ -153,21 +157,23 @@ for line in lines_after_p:
         line = line.replace(l.GetLabel(line),'')
 
     rLabel    = l.GetLabelInLine(line)
-    if rLabel == '': asmSource = line
+    if rLabel == '':
+        asmSource = line
     else:
         asmSource = line.replace(rLabel,str(l.d[rLabel]))
 
     opcode = MSP430x2xx.asm(asmSource)
 
     if opcode[0] == -1:
+        print(lines[lineno - 1])
         print(opcode[1],end='')
         print(' line:' + str(lineno))
         sys.exit()
 
     assembleInfo.append([line,rLabel,address,opcode])
+
     for byte in opcode:
         address += 2
-
 
     lineno += 1
 
@@ -175,32 +181,17 @@ for line in lines_after_p:
 SOURCE,LABEL,ADDRESS,OPCODE = range(4)
 
 for i, asminfo in enumerate(assembleInfo):
-    #print ('%-30s' % asminfo[SOURCE],end='')
-    #print ("0x%04x " % asminfo[ADDRESS],end='')
     if asminfo[LABEL] != '': # label?
         opcode = x.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
         assembleInfo[i][LABEL]  = ''
-        #for byte in opcode:
-        #    print ("0x%04x " % byte,end='')
-    else:pass
-       # for byte in asminfo[OPCODE]:
-       #     print ("0x%04x " % byte,end='')
-    #print()
-
 
 for i, x in enumerate(AsmDirect.INTTERRUPT_VECTOR):
     if l.d.get(x):
         AsmDirect.INTTERRUPT_VECTOR[i] = l.d.get(x)
 
 
-def Get1BytesList(data):
-    ret = []
-    for x in data:
-        ret.append((x & 0xff00) >> 8)
-        ret.append( x & 0x00ff)
-    return ret
-
+OpcodeList = []
 for data in assembleInfo:
     for opcode in data[OPCODE]:
         OpcodeList.append(opcode)

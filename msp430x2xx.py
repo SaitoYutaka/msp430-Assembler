@@ -235,26 +235,6 @@ class MSP430x2xx(OPcode, AddressingMode, ConstantGeneratorRegister, object):
 
     def _MakeErrorMsg(self, source, pos, errmsg):
         errorstr = ''
-        for x in source:
-            errorstr += x + ' '
-        errorstr += '\n'
-        if pos == 0:
-            errorstr += '^\n'
-        elif pos == 1:
-            num = errorstr.find(' ') + 1 
-            errorstr += ' ' * num + '^\n'
-        elif pos == 2:
-            pass
-
-        errorstr += errmsg
-        return errorstr
-
-    def _MakeErrorMsg(self, source, pos, errmsg):
-        errorstr = ''
-        for x in source:
-            errorstr += x + ' '
-        errorstr += '\n'
-
         num = 0
         for x in range(pos):
             num = num + errorstr[num:].find(' ') + 1
