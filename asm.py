@@ -4,6 +4,7 @@ import traceback
 import msp430x2xx
 import msp430x2xx_registers
 import msp430_bin2ihex
+from optparse import OptionParser
 
 class AssemblerDirectives(object):
     def __init__(self):
@@ -36,9 +37,11 @@ class AssemblerDirectives(object):
             else: continue
             AsmDirect.INTTERRUPT_VECTOR[i] = self.littleendian(int(v,base))
 
+def InitUsage():
+    usage = "usage: %prog [file] > output"
+    parser = OptionParser(usage=usage)
 
-def usage():
-    print('usage: asm.py [file]')
+    return parser
 
 def RemoveNewLineSpaceTab(lines):
     ret = []
@@ -112,10 +115,16 @@ def Get1BytesList(data):
 
 #if __name__ == "__main__":
 
+parser = InitUsage()
+options, args = parser.parse_args()
+
+if args == []:
+    parser.print_usage()
+    sys.exit()
+
 if len(sys.argv) == 1:
     usage()
     sys.exit()
-
 try:
     f = open(sys.argv[1],'r')
 except:
@@ -202,5 +211,3 @@ data = Get1BytesList(AsmDirect.INTTERRUPT_VECTOR)
 msp430_bin2ihex.MakeIntelHexLines(0xffe0, data)
 print(':00000001FF')
 sys.exit()
-
-
