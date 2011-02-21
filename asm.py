@@ -9,7 +9,22 @@ from optparse import OptionParser
 class AssemblerDirectives(object):
     def __init__(self):
         self.ORG               = 0
-        self.INTTERRUPT_VECTOR = []
+        self.INTERRUPT_VECTOR = [['.iv16',0xffff],
+                                    ['.iv17',0xffff],
+                                    ['.iv18',0xffff],
+                                    ['.iv19',0xffff],
+                                    ['.iv20',0xffff],
+                                    ['.iv21',0xffff],
+                                    ['.iv22',0xffff],
+                                    ['.iv23',0xffff],
+                                    ['.iv24',0xffff],
+                                    ['.iv25',0xffff],
+                                    ['.iv26',0xffff],
+                                    ['.iv27',0xffff],
+                                    ['.iv28',0xffff],
+                                    ['.iv29',0xffff],
+                                    ['.iv30',0xffff],
+                                    ['.iv31',0xffff]]
 
     def littleendian(self, num):
         tmp1 = (num & 0x00ff) << 8
@@ -17,25 +32,18 @@ class AssemblerDirectives(object):
         return  tmp1 | tmp2
 
     def GetAsmDirectives(self, f):
-        flag    = False
         for readline in f:
             line = readline
             if '.org' in line:
                 self.ORG = int(line[5:],16)
-            elif '.ivector' in line:
-                flag = True
-                continue
 
-            if flag:
-                self.INTTERRUPT_VECTOR.append(line)
-                if len(self.INTTERRUPT_VECTOR) == 16:
-                    flag = False
-
-        for i, v in enumerate(AsmDirect.INTTERRUPT_VECTOR):
-            if v[:2] == '0x':          base = 16
-            elif re.match('^[1-9]',v): base = 10
-            else: continue
-            AsmDirect.INTTERRUPT_VECTOR[i] = self.littleendian(int(v,base))
+            elif '.iv' in line:
+                for i, v in enumerate(self.INTERRUPT_VECTOR):
+                    if v[0] in line:
+                        if '0x' in line[6:]:
+                            self.INTERRUPT_VECTOR[i][1] = int(line[6:],16)
+                        else:
+                            self.INTERRUPT_VECTOR[i][1] = line[6:]
 
 def InitUsage():
     usage = "usage: %prog [file] > output"
@@ -195,9 +203,9 @@ for i, asminfo in enumerate(assembleInfo):
         assembleInfo[i][OPCODE] = opcode
         assembleInfo[i][LABEL]  = ''
 
-for i, x in enumerate(AsmDirect.INTTERRUPT_VECTOR):
-    if l.d.get(x):
-        AsmDirect.INTTERRUPT_VECTOR[i] = l.d.get(x)
+for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
+    if l.d.get(x[1]):
+        AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
 
 OpcodeList = []
@@ -207,7 +215,11 @@ for data in assembleInfo:
 
 data = Get1BytesList(OpcodeList)
 msp430_bin2ihex.MakeIntelHexLines(AsmDirect.ORG, data)
-data = Get1BytesList(AsmDirect.INTTERRUPT_VECTOR)
+
+tmp = []
+for x in AsmDirect.INTERRUPT_VECTOR:
+    tmp.append(x[1])
+data = Get1BytesList(tmp)
 msp430_bin2ihex.MakeIntelHexLines(0xffe0, data)
 print(':00000001FF')
 sys.exit()

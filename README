@@ -16,23 +16,22 @@ This assembler convert a assembly lauguage source file to intel hex format.
 
 LABEL: instruction operands
 
-.ivector
-  LABEL1
-  LABEL2
-  0x1234
-  0xf833
-  0xf844
-  0xf855
-  0xf866
-  0xf877
-  0xf888
-  0xf899
-  0xf8aa
-  0xf8bb
-  0xf8cc
-  0xf8dd
-  0xf8ee
-  0xf8ff
+.iv31 LABEL
+.iv30 LABEL
+.iv29 LABEL
+.iv28 0x0000
+.iv27 0x0000
+.iv26 0x0000
+.iv25 0x0000
+.iv24 0x0000
+.iv23 0x0000
+.iv22 0x0000
+.iv21 0x0000
+.iv20 0x0000
+.iv19 0x0000
+.iv18 0x0000
+.iv17 0x0000
+.iv16 0x0000
 
 2.2 Comment
 Commment is a start semicolon(;) .
@@ -41,5 +40,5 @@ Commment is a start semicolon(;) .
 The .org directive is to specify the origin address which assembler will
 assume the program begins at when it is loaded into flash memory.
 
-2.4 .ivector : Interrupt vector
+2.4 .iv31 ...  .iv16 : Interrupt vector
 
