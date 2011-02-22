@@ -10,21 +10,21 @@ class AssemblerDirectives(object):
     def __init__(self):
         self.ORG               = 0
         self.INTERRUPT_VECTOR = [['.iv16',0xffff],
-                                    ['.iv17',0xffff],
-                                    ['.iv18',0xffff],
-                                    ['.iv19',0xffff],
-                                    ['.iv20',0xffff],
-                                    ['.iv21',0xffff],
-                                    ['.iv22',0xffff],
-                                    ['.iv23',0xffff],
-                                    ['.iv24',0xffff],
-                                    ['.iv25',0xffff],
-                                    ['.iv26',0xffff],
-                                    ['.iv27',0xffff],
-                                    ['.iv28',0xffff],
-                                    ['.iv29',0xffff],
-                                    ['.iv30',0xffff],
-                                    ['.iv31',0xffff]]
+                                 ['.iv17',0xffff],
+                                 ['.iv18',0xffff],
+                                 ['.iv19',0xffff],
+                                 ['.iv20',0xffff],
+                                 ['.iv21',0xffff],
+                                 ['.iv22',0xffff],
+                                 ['.iv23',0xffff],
+                                 ['.iv24',0xffff],
+                                 ['.iv25',0xffff],
+                                 ['.iv26',0xffff],
+                                 ['.iv27',0xffff],
+                                 ['.iv28',0xffff],
+                                 ['.iv29',0xffff],
+                                 ['.iv30',0xffff],
+                                 ['.iv31',0xffff]]
 
     def littleendian(self, num):
         tmp1 = (num & 0x00ff) << 8

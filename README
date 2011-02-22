@@ -41,4 +41,6 @@ The .org directive is to specify the origin address which assembler will
 assume the program begins at when it is loaded into flash memory.
 
 2.4 .iv31 ...  .iv16 : Interrupt vector
+.iv[num]: Interrupt Vector[Priority]
+The .iv31, .iv30 , .iv29 ,,,, .iv16 directives are to specify the interrupt vector address.
 
