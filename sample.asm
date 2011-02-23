@@ -17,12 +17,16 @@
 	;; #define CCIE                0x0010  /* Capture/compare interrupt enable */
 	MOV #0x0010, &TACCTL0
 	MOV #11999, &TACCR0
-	;; #define WRITE_SR(x)
-	asdfasdf	volatile__("mov	%0, r2" : : "r" ((uint16_t) x)) 
+	;; #define WRITE_SR x "amov %0, r2" : : "r" x
 	;; #define GIE                 0x0008
 	;; Enable global interrupts
 	MOV #0x0008, R2
-
-
-
-	
+	;; Loop forever
+:LOOP
+	JMP LOOP
+	;; Interrupt
+:TA0
+	XOR.B #0x41,&P1OUT
+	RETI
+.iv31 0xf800
+.iv25 TA0

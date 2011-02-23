@@ -49,6 +49,10 @@ def InitUsage():
     usage = "usage: %prog [file] > output"
     parser = OptionParser(usage=usage)
 
+    parser.add_option("-d", "--debug",
+                      help="debug" )
+
+
     return parser
 
 def RemoveNewLineSpaceTab(lines):
@@ -126,17 +130,21 @@ def Get1BytesList(data):
 parser = InitUsage()
 options, args = parser.parse_args()
 
-if args == []:
-    parser.print_usage()
-    sys.exit()
+#if args == []:
+#    parser.print_usage()
+#    sys.exit()
 
-if len(sys.argv) == 1:
-    usage()
-    sys.exit()
+#if len(sys.argv) == 1:
+#    usage()
+#    sys.exit()
+
 try:
-    f = open(sys.argv[1],'r')
+    if options.debug != None:
+        f = open(options.debug,'r')
+    else:
+        f = open(sys.argv[1],'r')
 except:
-    print(sys.argv[1] + ': No such file')
+    #print(sys.argv[1] + ': No such file')
     usage()
     sys.exit()
 allline = f.readlines()
@@ -199,7 +207,7 @@ SOURCE,LABEL,ADDRESS,OPCODE = range(4)
 
 for i, asminfo in enumerate(assembleInfo):
     if asminfo[LABEL] != '': # label?
-        opcode = x.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
+        opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
         assembleInfo[i][LABEL]  = ''
 
@@ -207,6 +215,14 @@ for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
     if l.d.get(x[1]):
         AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
+if options.debug != None:
+    for data in assembleInfo:
+        print(data[SOURCE],end='')
+        for j in data[OPCODE]:
+            print(' ' + '{0:04x}'.format(j) + ' ',end='')
+        print()
+
+    sys.exit()
 
 OpcodeList = []
 for data in assembleInfo:
