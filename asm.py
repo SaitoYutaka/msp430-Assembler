@@ -205,8 +205,24 @@ for line in lines_after_p:
 
 SOURCE,LABEL,ADDRESS,OPCODE = range(4)
 
+jmps = ("jne","jnz", "jeq", "jz", "jnc", "jc", "jn",
+"jge", "jl", "jmp")
+           
 for i, asminfo in enumerate(assembleInfo):
     if asminfo[LABEL] != '': # label?
+        for x in jmps:
+            if x in asminfo[SOURCE] or x.upper() in asminfo[SOURCE]:
+                #'{0:02x}'.format(0xff & ~(foo * -1) + 1)
+                if asminfo[ADDRESS] + 1 < l.d[asminfo[LABEL]]:
+                    offset = l.d[asminfo[LABEL]] - (asminfo[ADDRESS] + 1)
+                    stroffset = '0x' + '{0:02x}'.format(offset)
+                else:
+                    offset = (asminfo[ADDRESS] + 1) - l.d[asminfo[LABEL]]
+                    offset = offset * -1
+                    stroffset = '0x' + '{0:02x}'.format(0xff & ~(offset * -1) + 1)
+
+                sys.exit()
+
         opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
         assembleInfo[i][LABEL]  = ''
@@ -235,7 +251,15 @@ msp430_bin2ihex.MakeIntelHexLines(AsmDirect.ORG, data)
 tmp = []
 for x in AsmDirect.INTERRUPT_VECTOR:
     tmp.append(x[1])
-data = Get1BytesList(tmp)
+
+def Get1BytesList2(data):
+    ret = []
+    for x in data:
+        ret.append( x & 0x00ff)
+        ret.append((x & 0xff00) >> 8)
+    return ret
+
+data = Get1BytesList2(tmp)
 msp430_bin2ihex.MakeIntelHexLines(0xffe0, data)
 print(':00000001FF')
 sys.exit()
