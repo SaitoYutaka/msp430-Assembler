@@ -207,21 +207,31 @@ SOURCE,LABEL,ADDRESS,OPCODE = range(4)
 
 jmps = ("jne","jnz", "jeq", "jz", "jnc", "jc", "jn",
 "jge", "jl", "jmp")
-           
+        
+def isJumps():
+    for x in jmps:
+        if x in asminfo[SOURCE] or x.upper() in asminfo[SOURCE]:
+            if asminfo[ADDRESS] + 1 < l.d[asminfo[LABEL]]:
+                offset = int((l.d[asminfo[LABEL]] - (asminfo[ADDRESS] + 1))/2)
+                stroffset = '0x' + '{0:02x}'.format(offset)
+            else:
+                offset = (asminfo[ADDRESS] + 1) - l.d[asminfo[LABEL]]
+                offset = offset * -1
+                stroffset = '0x' + '{0:02x}'.format(0xff & ~(offset * -1) + 1)
+
+            #print(asminfo[LABEL])
+            #print(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
+            opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
+            assembleInfo[i][OPCODE] = opcode
+            assembleInfo[i][LABEL]  = ''
+            return True
+
+    return False
+
 for i, asminfo in enumerate(assembleInfo):
     if asminfo[LABEL] != '': # label?
-        for x in jmps:
-            if x in asminfo[SOURCE] or x.upper() in asminfo[SOURCE]:
-                #'{0:02x}'.format(0xff & ~(foo * -1) + 1)
-                if asminfo[ADDRESS] + 1 < l.d[asminfo[LABEL]]:
-                    offset = l.d[asminfo[LABEL]] - (asminfo[ADDRESS] + 1)
-                    stroffset = '0x' + '{0:02x}'.format(offset)
-                else:
-                    offset = (asminfo[ADDRESS] + 1) - l.d[asminfo[LABEL]]
-                    offset = offset * -1
-                    stroffset = '0x' + '{0:02x}'.format(0xff & ~(offset * -1) + 1)
 
-                sys.exit()
+        if isJumps(): continue
 
         opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
