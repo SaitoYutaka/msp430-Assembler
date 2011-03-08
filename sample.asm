@@ -20,11 +20,12 @@
 	MOV.B #0,0x200(R15)
 	JNZ LABEL4
 :LABEL3	
-	MOV #0xf832, PC
+	MOV MAIN, PC
 :GGGG	
-	MOV #0xf86e, PC
+	MOV FOO, PC
 	MOV @SP+, PC
 	;; Initialize the SP
+:MAIN	
 	MOV #0x280, SP
 	;; Stop watchdog timer
 	MOV #0x5a80, &WDTCTL
@@ -53,6 +54,7 @@
 :TA0
 	XOR.B #0x41,&P1OUT
 	RETI
+:FOO	
 	RETI
 .iv31 0xf800
 .iv30 GGGG
