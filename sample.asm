@@ -20,9 +20,9 @@
 	MOV.B #0,0x200(R15)
 	JNZ LABEL4
 :LABEL3	
-	MOV #0xf842, PC
+	MOV #0xf832, PC
 :GGGG	
-	MOV #0xf87e, PC
+	MOV #0xf86e, PC
 	MOV @SP+, PC
 	;; Initialize the SP
 	MOV #0x280, SP

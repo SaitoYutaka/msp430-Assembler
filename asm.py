@@ -213,13 +213,14 @@ def isJumps():
         if x in asminfo[SOURCE] or x.upper() in asminfo[SOURCE]:
             if asminfo[ADDRESS] + 1 < l.d[asminfo[LABEL]]:
                 offset = int((l.d[asminfo[LABEL]] - (asminfo[ADDRESS] + 1))/2)
-                stroffset = '0x' + '{0:02x}'.format(offset)
+                stroffset = '0x' + '{0:03x}'.format(offset)
             else:
                 offset = (asminfo[ADDRESS] + 1) - l.d[asminfo[LABEL]]
-                offset = offset * -1
-                stroffset = '0x' + '{0:02x}'.format(0xff & ~(offset * -1) + 1)
+                offset = int(offset * -1 / 2) - 1
+                stroffset = '0x' + '{0:03x}'.format(0x3ff & ~(offset * -1) + 1)
 
-            #print(asminfo[LABEL])
+            #print(offset)
+            #print(asminfo[LABEL],'{0:03x}'.format(l.d[asminfo[LABEL]]))
             #print(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
             opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
             assembleInfo[i][OPCODE] = opcode
