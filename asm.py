@@ -76,7 +76,7 @@ class Label(object):
 
     def SetAddress(self, l, addr):
         label = self.GetLabel(l)
-        self.d[label[1:]] = addr
+        self.d[label[:-1]] = addr
 
     def IsOnlyLabelInLine(self, line):
         for x in self.d.keys():
@@ -90,9 +90,9 @@ class Label(object):
     def GetAllLabel(self, f):
         dummyval = 0
         for line in f:
-            if line[0] == ':':
-                tmp = self.GetLabel(line)
-                self.d[tmp[1:]] = dummyval
+            if line.strip() == '': continue
+            if line.strip()[-1] == ':':
+                self.d[line.strip()[:-1]] = dummyval
                 dummyval += 1
                 continue
 
@@ -174,7 +174,7 @@ for line in lines_after_p:
         lineno += 1
         continue
 
-    if line[0] == ':' :
+    if line[-1] == ':' :
         l.SetAddress(line, address)
         if l.IsOnlyLabelInLine(line):
             lineno += 1
