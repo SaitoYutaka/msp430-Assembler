@@ -14,7 +14,8 @@ This assembler convert a assembly lauguage source file to intel hex format.
 ;; Some comments
 .org 0xf800
 
-LABEL: instruction operands
+:LABEL
+instruction operands
 
 .iv31 LABEL
 .iv30 LABEL
@@ -36,11 +37,37 @@ LABEL: instruction operands
 2.2 Comment
 Commment is a start semicolon(;) .
 
-2.3 .org : Program Origin
+2.3 Labels
+Label is a start icolon(:) .
+You can't write Labels a line on assembly code.
+
+Example
+:LOOP jmp LOOP <-- incorrect
+
+:LOOP          <-- need newline
+      jmp LOOP
+
+2.4 .org : Program Origin
 The .org directive is to specify the origin address which assembler will
 assume the program begins at when it is loaded into flash memory.
 
-2.4 .iv31 ...  .iv16 : Interrupt vector
+2.5 .iv31 ...  .iv16 : Interrupt vector
 .iv[num]: Interrupt Vector[Priority]
 The .iv31, .iv30 , .iv29 ,,,, .iv16 directives are to specify the interrupt vector address.
 
+2.6 Instructions
+Msp430 tiny assembler is supported those instructions.
+RRC[.B], SWPB, RRA[.B], SXT, PUSH[.B], CALL, RETI, JNE, JNZ, JEQ,
+JZ, JNC, JC, JN, JG, JL, JMP, MOV[.B], ADD[.B], ADDC[.B], SUBC[.B], SUB[.B]
+CMP[.B], DADD[.B], BIT[.B], BIC[.B], BIS[.B], XOR[.B], AND[.B]
+
+It doesn't support emulated instructions such as NOP, RET and DEC.
+
+2.7 Operands
+You can write register name on operands.
+
+Example
+; Set value to watchdog timer control register(WDTCTL).
+MOV #0x5a80, &WDTCTL
+; Set Bits to digital I/O Port1 Direction register(P1DIR).
+BIS.B #0x0041, &P1DIR
