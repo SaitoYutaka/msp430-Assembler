@@ -34,6 +34,7 @@ class AssemblerDirectives(object):
     def GetAsmDirectives(self, f):
         for readline in f:
             line = readline
+            if line == '' or line[0] == ';' : continue
             if '.org' in line:
                 self.ORG = int(line[5:],16)
 
@@ -103,6 +104,9 @@ class Label(object):
         return ''
 
 def Preprocess(lines):
+    """
+    Convert register name to address
+    """
     ret = []
     tmp = ''
     for line in lines:
@@ -125,18 +129,8 @@ def Get1BytesList(data):
         ret.append( x & 0x00ff)
     return ret
 
-#if __name__ == "__main__":
-
 parser = InitUsage()
 options, args = parser.parse_args()
-
-#if args == []:
-#    parser.print_usage()
-#    sys.exit()
-
-#if len(sys.argv) == 1:
-#    usage()
-#    sys.exit()
 
 try:
     if options.debug != None:
@@ -144,7 +138,6 @@ try:
     else:
         f = open(sys.argv[1],'r')
 except:
-    #print(sys.argv[1] + ': No such file')
     usage()
     sys.exit()
 allline = f.readlines()
@@ -167,8 +160,6 @@ address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
 
 for line in lines_after_p:
-
-    if line == '.ivector': break
 
     if line == '' or line[0] == ';' or line[0] == '.':
         lineno += 1

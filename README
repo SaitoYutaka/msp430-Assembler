@@ -71,3 +71,4 @@ Example
 MOV #0x5a80, &WDTCTL
 ; Set Bits to digital I/O Port1 Direction register(P1DIR).
 BIS.B #0x0041, &P1DIR
+
