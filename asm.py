@@ -132,6 +132,7 @@ def Get1BytesList(data):
 parser = InitUsage()
 options, args = parser.parse_args()
 
+# Open, read source file
 try:
     if options.debug != None:
         f = open(options.debug,'r')
@@ -143,28 +144,38 @@ except:
 allline = f.readlines()
 f.close()
 
+# Remove new line, white space and tab
 lines = RemoveNewLineSpaceTab(allline)
 
+# Convert register name to address
 lines_after_p = Preprocess(lines)
 
+# Get labels in lines
 l = Label()
 l.GetAllLabel(lines_after_p)
 
+# Get Assembler directives in lines
 AsmDirect = AssemblerDirectives()
 AsmDirect.GetAsmDirectives(lines_after_p)
+for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
+    if l.d.get(x[1]):
+        AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
-lineno = 1   
+# Make assemble information each line
+# assembleInfo = [source,label(if in source),address,op code]
 assembleInfo = []
-
+lineno = 1   
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
 
 for line in lines_after_p:
 
+    # Ignore only new line in a line, comment and Assembler directives
     if line == '' or line[0] == ';' or line[0] == '.':
         lineno += 1
         continue
 
+    # Make dictionary {Label:address}
     if line[-1] == ':' :
         l.SetAddress(line, address)
         if l.IsOnlyLabelInLine(line):
@@ -172,12 +183,15 @@ for line in lines_after_p:
             continue
         line = line.replace(l.GetLabel(line),'')
 
-    rLabel    = l.GetLabelInLine(line)
-    if rLabel == '':
-        asmSource = line
+    rLabel = l.GetLabelInLine(line)
+    if rLabel != '':
+        # Replace LABEL to address(dummy)
+        # Note: Replace LABEL to real address after all lines read
+        asmSource = line.replace(rLabel,'0x0000')
     else:
-        asmSource = line.replace(rLabel,str(l.d[rLabel]))
+        asmSource = line
 
+    # Assemble
     opcode = MSP430x2xx.asm(asmSource)
 
     if opcode[0] == -1:
@@ -188,18 +202,15 @@ for line in lines_after_p:
 
     assembleInfo.append([line,rLabel,address,opcode])
 
-    for byte in opcode:
-        address += 2
-
+    # Increment address info and line no
+    for byte in opcode: address += 2
     lineno += 1
 
-
+# Replace LABEL to real address
 SOURCE,LABEL,ADDRESS,OPCODE = range(4)
-
-jmps = ("jne","jnz", "jeq", "jz", "jnc", "jc", "jn",
-"jge", "jl", "jmp")
-        
 def isJumps():
+    jmps = ("jne","jnz", "jeq", "jz", "jnc", "jc", "jn",
+            "jge", "jl", "jmp")
     for x in jmps:
         if x in asminfo[SOURCE] or x.upper() in asminfo[SOURCE]:
             if asminfo[ADDRESS] + 1 < l.d[asminfo[LABEL]]:
@@ -210,28 +221,19 @@ def isJumps():
                 offset = int(offset * -1 / 2) - 1
                 stroffset = '0x' + '{0:03x}'.format(0x3ff & ~(offset * -1) + 1)
 
-            #print(offset)
-            #print(asminfo[LABEL],'{0:03x}'.format(l.d[asminfo[LABEL]]))
-            #print(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
             opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
             assembleInfo[i][OPCODE] = opcode
             assembleInfo[i][LABEL]  = ''
             return True
-
     return False
 
 for i, asminfo in enumerate(assembleInfo):
     if asminfo[LABEL] != '': # label?
-
         if isJumps(): continue
-
         opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
         assembleInfo[i][LABEL]  = ''
 
-for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
-    if l.d.get(x[1]):
-        AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
 if options.debug != None:
     for data in assembleInfo:
@@ -242,6 +244,7 @@ if options.debug != None:
 
     sys.exit()
 
+# Make Intel hex file
 OpcodeList = []
 for data in assembleInfo:
     for opcode in data[OPCODE]:
