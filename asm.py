@@ -6,6 +6,106 @@ import msp430x2xx_registers
 import msp430_bin2ihex
 from optparse import OptionParser
 
+
+def InitUsage():
+    usage = "usage: %prog [file] > output"
+    parser = OptionParser(usage=usage)
+
+    parser.add_option("-d", "--debug",
+                      help="debug" )
+
+
+    return parser
+
+
+
+
+
+def Get1BytesList(data):
+    ret = []
+    for x in data:
+        ret.append((x & 0xff00) >> 8)
+        ret.append( x & 0x00ff)
+    return ret
+
+parser = InitUsage()
+options, args = parser.parse_args()
+
+# Open file and read all line
+try:
+    if options.debug != None:
+        f = open(options.debug,'r')
+    else:
+        f = open(sys.argv[1],'r')
+except:
+    usage()
+    sys.exit()
+allline = f.readlines()
+f.close()
+
+# Remove new line, white space and tab
+def RemoveNewLineSpaceTab(lines):
+    ret = []
+    for x in lines:
+        x = x.strip('\n')
+        x = x.lstrip()
+        x = x.replace('\t',' ')
+        ret.append(x)
+    return ret
+lines = RemoveNewLineSpaceTab(allline)
+
+# Convert register name to address
+def Preprocess(lines):
+    ret = []
+    tmp = ''
+    for line in lines:
+        tmp = line
+        for reg in msp430x2xx_registers.registers.keys():
+            if reg in line:
+                tmp = line.replace(reg,str(msp430x2xx_registers.registers[reg]))
+                break
+        for reg in msp430x2xx_registers.registers.keys():
+            if reg in line:
+                tmp = tmp.replace(reg,str(msp430x2xx_registers.registers[reg]))
+                break
+        ret.append(tmp)
+    return ret
+lines_after_p = Preprocess(lines)
+
+# Get labels
+class Label(object):
+    def __init__(self):
+        self.d = {}
+
+    def GetLabel(self, s):
+        if s.find(' ') == -1:
+            return s
+        else: return s[0:s.find(' ')]
+
+    def SetAddress(self, l, addr):
+        label = self.GetLabel(l)
+        self.d[label[:-1]] = addr
+
+    def GetAllLabel(self, f):
+        dummyval = 0
+        for line in f:
+            if line.strip() == '': continue
+            if line.strip()[-1] == ':':
+                self.d[line.strip()[:-1]] = dummyval
+                dummyval += 1
+                continue
+
+    def GetLabelInLine(self, line):
+        for label in self.d.keys():
+            if label in line:
+                return label
+        return ''
+
+l = Label()
+l.GetAllLabel(lines_after_p)
+
+# Get assembler directives
+# The address will get after all lines assembled
 class AssemblerDirectives(object):
     def __init__(self):
         self.ORG               = 0
@@ -46,150 +146,37 @@ class AssemblerDirectives(object):
                         else:
                             self.INTERRUPT_VECTOR[i][1] = line[6:]
 
-def InitUsage():
-    usage = "usage: %prog [file] > output"
-    parser = OptionParser(usage=usage)
-
-    parser.add_option("-d", "--debug",
-                      help="debug" )
-
-
-    return parser
-
-def RemoveNewLineSpaceTab(lines):
-    ret = []
-    for x in lines:
-        x = x.strip('\n')
-        x = x.lstrip()
-        x = x.replace('\t',' ')
-        ret.append(x)
-    return ret
-
-
-class Label(object):
-    def __init__(self):
-        self.d = {}
-
-    def GetLabel(self, s):
-        if s.find(' ') == -1:
-            return s
-        else: return s[0:s.find(' ')]
-
-    def SetAddress(self, l, addr):
-        label = self.GetLabel(l)
-        self.d[label[:-1]] = addr
-
-    def IsOnlyLabelInLine(self, line):
-        for x in self.d.keys():
-            if x in line:
-                tmp = line.replace(x,'')
-                tmp = tmp.replace(':','')
-                tmp = tmp.strip()
-                if tmp == '': return True
-                else: return False
-
-    def GetAllLabel(self, f):
-        dummyval = 0
-        for line in f:
-            if line.strip() == '': continue
-            if line.strip()[-1] == ':':
-                self.d[line.strip()[:-1]] = dummyval
-                dummyval += 1
-                continue
-
-    def GetLabelInLine(self, line):
-        for label in self.d.keys():
-            if label in line:
-                return label
-        return ''
-
-def Preprocess(lines):
-    """
-    Convert register name to address
-    """
-    ret = []
-    tmp = ''
-    for line in lines:
-        tmp = line
-        for reg in msp430x2xx_registers.registers.keys():
-            if reg in line:
-                tmp = line.replace(reg,str(msp430x2xx_registers.registers[reg]))
-                break
-        for reg in msp430x2xx_registers.registers.keys():
-            if reg in line:
-                tmp = tmp.replace(reg,str(msp430x2xx_registers.registers[reg]))
-                break
-        ret.append(tmp)
-    return ret
-
-def Get1BytesList(data):
-    ret = []
-    for x in data:
-        ret.append((x & 0xff00) >> 8)
-        ret.append( x & 0x00ff)
-    return ret
-
-parser = InitUsage()
-options, args = parser.parse_args()
-
-# Open, read source file
-try:
-    if options.debug != None:
-        f = open(options.debug,'r')
-    else:
-        f = open(sys.argv[1],'r')
-except:
-    usage()
-    sys.exit()
-allline = f.readlines()
-f.close()
-
-# Remove new line, white space and tab
-lines = RemoveNewLineSpaceTab(allline)
-
-# Convert register name to address
-lines_after_p = Preprocess(lines)
-
-# Get labels in lines
-l = Label()
-l.GetAllLabel(lines_after_p)
-
-# Get Assembler directives in lines
 AsmDirect = AssemblerDirectives()
 AsmDirect.GetAsmDirectives(lines_after_p)
-for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
-    if l.d.get(x[1]):
-        AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
-# Make assemble information each line
-# assembleInfo = [source,label(if in source),address,op code]
-assembleInfo = []
+
+# Assemble all line
+# Make assembleInfo
 lineno = 1   
+assembleInfo = []
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
 
 for line in lines_after_p:
 
-    # Ignore only new line in a line, comment and Assembler directives
+    # Skip only new line in line , comment and assembler directives
     if line == '' or line[0] == ';' or line[0] == '.':
         lineno += 1
         continue
 
-    # Make dictionary {Label:address}
+    # Make Label inforamation
     if line[-1] == ':' :
         l.SetAddress(line, address)
-        if l.IsOnlyLabelInLine(line):
-            lineno += 1
-            continue
-        line = line.replace(l.GetLabel(line),'')
+        lineno += 1
+        continue
 
-    rLabel = l.GetLabelInLine(line)
-    if rLabel != '':
-        # Replace LABEL to address(dummy)
-        # Note: Replace LABEL to real address after all lines read
-        asmSource = line.replace(rLabel,'0x0000')
-    else:
+    # Convert label to dummy address(0x0000)
+    # Get real address after assembled all line
+    rLabel    = l.GetLabelInLine(line)
+    if rLabel == '':
         asmSource = line
+    else:
+        asmSource = line.replace(rLabel,'0x0000')
 
     # Assemble
     opcode = MSP430x2xx.asm(asmSource)
@@ -202,12 +189,13 @@ for line in lines_after_p:
 
     assembleInfo.append([line,rLabel,address,opcode])
 
-    # Increment address info and line no
-    for byte in opcode: address += 2
+    for byte in opcode:address += 2
+
     lineno += 1
 
-# Replace LABEL to real address
+# Assemble lines which include label
 SOURCE,LABEL,ADDRESS,OPCODE = range(4)
+
 def isJumps():
     jmps = ("jne","jnz", "jeq", "jz", "jnc", "jc", "jn",
             "jge", "jl", "jmp")
@@ -225,15 +213,21 @@ def isJumps():
             assembleInfo[i][OPCODE] = opcode
             assembleInfo[i][LABEL]  = ''
             return True
+
     return False
 
 for i, asminfo in enumerate(assembleInfo):
-    if asminfo[LABEL] != '': # label?
+    if asminfo[LABEL] != '':
         if isJumps(): continue
+
         opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
         assembleInfo[i][LABEL]  = ''
 
+# Get interrupt vector address
+for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
+    if l.d.get(x[1]):
+        AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
 if options.debug != None:
     for data in assembleInfo:
@@ -244,7 +238,7 @@ if options.debug != None:
 
     sys.exit()
 
-# Make Intel hex file
+# Make intel hex format
 OpcodeList = []
 for data in assembleInfo:
     for opcode in data[OPCODE]:
