@@ -14,12 +14,7 @@ def InitUsage():
     parser.add_option("-d", "--debug",
                       help="debug" )
 
-
     return parser
-
-
-
-
 
 def Get1BytesList(data):
     ret = []
@@ -230,8 +225,12 @@ for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
         AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
 if options.debug != None:
+    print('Address',end=' ')
+    print('{:<26}'.format('Source'),end='')
+    print('Machine code(Hex)')
     for data in assembleInfo:
-        print(data[SOURCE],end='')
+        print('{0:#x}'.format(data[ADDRESS],),end='  ')
+        print('{:<25}'.format(data[SOURCE],),end='')
         for j in data[OPCODE]:
             print(' ' + '{0:04x}'.format(j) + ' ',end='')
         print()
@@ -239,6 +238,7 @@ if options.debug != None:
     sys.exit()
 
 # Make intel hex format
+# Machine code
 OpcodeList = []
 for data in assembleInfo:
     for opcode in data[OPCODE]:
@@ -247,18 +247,16 @@ for data in assembleInfo:
 data = Get1BytesList(OpcodeList)
 msp430_bin2ihex.MakeIntelHexLines(AsmDirect.ORG, data)
 
+# Interrupt vector
 tmp = []
 for x in AsmDirect.INTERRUPT_VECTOR:
     tmp.append(x[1])
 
-def Get1BytesList2(data):
-    ret = []
-    for x in data:
-        ret.append( x & 0x00ff)
-        ret.append((x & 0xff00) >> 8)
-    return ret
+data = []
+for x in tmp:
+    data.append( x & 0x00ff)
+    data.append((x & 0xff00) >> 8)
 
-data = Get1BytesList2(tmp)
 msp430_bin2ihex.MakeIntelHexLines(0xffe0, data)
 print(':00000001FF')
 sys.exit()
