@@ -10,7 +10,7 @@ MAIN:
 	BIS.B #0x0041, &P1DIR
 	BIS.B #0x0041, &P1OUT
 	;; Set ACLK to use internal VLO (12 kHz clock)
-	BIS.B #0x0020 ,&BCSCTL3
+	BIS.B #0x0020, &BCSCTL3
 	;; Set TimerA to use auxiliary clock in UP mode
 	MOV #0x0110, &TACTL
 	;; Enable the interrupt for TACCR0 match

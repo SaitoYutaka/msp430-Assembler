@@ -152,7 +152,7 @@ assembleInfo = []
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
 
-for line in lines_after_p:
+for line, dline in zip(lines_after_p, lines):
 
     # Skip only new line in line , comment and assembler directives
     if line == '' or line[0] == ';' or line[0] == '.':
@@ -163,6 +163,7 @@ for line in lines_after_p:
     if line[-1] == ':' :
         l.SetAddress(line, address)
         lineno += 1
+        assembleInfo.append([line,'','',''])
         continue
 
     # Convert label to dummy address(0x0000)
@@ -182,7 +183,7 @@ for line in lines_after_p:
         print(' line:' + str(lineno))
         sys.exit()
 
-    assembleInfo.append([line,rLabel,address,opcode])
+    assembleInfo.append([dline,rLabel,address,opcode])
 
     for byte in opcode:address += 2
 
@@ -224,17 +225,21 @@ for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
     if l.d.get(x[1]):
         AsmDirect.INTERRUPT_VECTOR[i][1] = l.d.get(x[1])
 
+# print assemble info
 if options.debug != None:
     print('Address',end=' ')
     print('{:<26}'.format('Source'),end='')
     print('Machine code(Hex)')
     for data in assembleInfo:
-        print('{0:#x}'.format(data[ADDRESS],),end='  ')
-        print('{:<25}'.format(data[SOURCE],),end='')
-        for j in data[OPCODE]:
-            print(' ' + '{0:04x}'.format(j) + ' ',end='')
-        print()
-
+        if data[ADDRESS] != '':
+            print('{0:#x}'.format(data[ADDRESS],),end='  ')
+            print('{:<25}'.format(data[SOURCE],),end='')
+            for j in data[OPCODE]:
+                print(' ' + '{0:04x}'.format(j) + ' ',end='')
+            print()
+        else:
+            print('        ',end='')
+            print(data[SOURCE])
     sys.exit()
 
 # Make intel hex format
