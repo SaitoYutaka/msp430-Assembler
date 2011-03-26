@@ -4,6 +4,7 @@ import traceback
 import msp430x2xx
 import msp430x2xx_registers
 import msp430_bin2ihex
+import stepasm
 from optparse import OptionParser
 
 
@@ -13,6 +14,9 @@ def InitUsage():
 
     parser.add_option("-d", "--debug",
                       help="debug" )
+
+    parser.add_option("-s", "--step",
+                      help="step assemble" )
 
     return parser
 
@@ -30,6 +34,8 @@ options, args = parser.parse_args()
 try:
     if options.debug != None:
         f = open(options.debug,'r')
+    elif options.step != None:
+        f = open(options.step,'r')
     else:
         f = open(sys.argv[1],'r')
 except:
@@ -147,8 +153,9 @@ AsmDirect.GetAsmDirectives(lines_after_p)
 
 # Assemble all line
 # Make assembleInfo
-lineno = 1   
+# assembleInfo =[ SOURCE,LABEL,LABEL ADDRESS,ADDRESS,OPCODE ]
 assembleInfo = []
+lineno = 1   
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
 
@@ -156,6 +163,8 @@ for line, dline in zip(lines_after_p, lines):
 
     # Skip only new line in line , comment and assembler directives
     if line == '' or line[0] == ';' or line[0] == '.':
+        if '.org' in line:
+            assembleInfo.append([line,'','','',''])
         lineno += 1
         continue
 
@@ -163,7 +172,7 @@ for line, dline in zip(lines_after_p, lines):
     if line[-1] == ':' :
         l.SetAddress(line, address)
         lineno += 1
-        assembleInfo.append([line,'','',''])
+        assembleInfo.append([line,'','','',''])
         continue
 
     # Convert label to dummy address(0x0000)
@@ -183,14 +192,14 @@ for line, dline in zip(lines_after_p, lines):
         print(' line:' + str(lineno))
         sys.exit()
 
-    assembleInfo.append([dline,rLabel,address,opcode])
+    assembleInfo.append([dline,rLabel,'',address,opcode])
 
     for byte in opcode:address += 2
 
     lineno += 1
 
 # Assemble lines which include label
-SOURCE,LABEL,ADDRESS,OPCODE = range(4)
+SOURCE,LABEL,L_ADDRESS,ADDRESS,OPCODE = range(5)
 
 def isJumps():
     jmps = ("jne","jnz", "jeq", "jz", "jnc", "jc", "jn",
@@ -207,7 +216,7 @@ def isJumps():
 
             opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
             assembleInfo[i][OPCODE] = opcode
-            assembleInfo[i][LABEL]  = ''
+
             return True
 
     return False
@@ -218,7 +227,8 @@ for i, asminfo in enumerate(assembleInfo):
 
         opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
-        assembleInfo[i][LABEL]  = ''
+    elif asminfo[SOURCE][-1] == ':':
+        assembleInfo[i][L_ADDRESS] = l.d[asminfo[SOURCE][:-1]]
 
 # Get interrupt vector address
 for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
@@ -240,6 +250,11 @@ if options.debug != None:
         else:
             print('        ',end='')
             print(data[SOURCE])
+    sys.exit()
+
+# step assemble mode
+if options.step != None:
+    stepasm.stepasm(assembleInfo)
     sys.exit()
 
 # Make intel hex format
