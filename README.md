@@ -41,11 +41,11 @@ Commment is a start semicolon(;) .
 Label is a start icolon(:) .
 You can't write Labels a line on assembly code.
 
-Example
-:LOOP jmp LOOP <-- incorrect
-
-:LOOP          <-- need newline
-      jmp LOOP
+    Example
+    :LOOP jmp LOOP <-- incorrect
+    
+    :LOOP          <-- need newline
+    	   jmp LOOP
 
 ##2.4 .org : Program Origin
 The .org directive is to specify the origin address which assembler will
@@ -66,9 +66,9 @@ It doesn't support emulated instructions such as NOP, RET and DEC.
 ##2.7 Operands
 You can write register name on operands.
 
-Example
-; Set value to watchdog timer control register(WDTCTL).
-MOV #0x5a80, &WDTCTL
-; Set Bits to digital I/O Port1 Direction register(P1DIR).
-BIS.B #0x0041, &P1DIR
+    Example
+    ; Set value to watchdog timer control register(WDTCTL).
+    MOV #0x5a80, &WDTCTL
+    ; Set Bits to digital I/O Port1 Direction register(P1DIR).
+    BIS.B #0x0041, &P1DIR
 
