@@ -11,28 +11,28 @@ This assembler convert a assembly lauguage source file to intel hex format.
 
 ##2.1 Layout of source file
 
-;; Some comments
-.org 0xf800
+      ;; Some comments
+      .org 0xf800
 
-:LABEL
-instruction operands
+      :LABEL	   
+      instruction operands
 
-.iv31 LABEL
-.iv30 LABEL
-.iv29 LABEL
-.iv28 0x0000
-.iv27 0x0000
-.iv26 0x0000
-.iv25 0x0000
-.iv24 0x0000
-.iv23 0x0000
-.iv22 0x0000
-.iv21 0x0000
-.iv20 0x0000
-.iv19 0x0000
-.iv18 0x0000
-.iv17 0x0000
-.iv16 0x0000
+      .iv31 LABEL
+      .iv30 LABEL
+      .iv29 LABEL
+      .iv28 0x0000
+      .iv27 0x0000
+      .iv26 0x0000
+      .iv25 0x0000
+      .iv24 0x0000
+      .iv23 0x0000
+      .iv22 0x0000
+      .iv21 0x0000
+      .iv20 0x0000
+      .iv19 0x0000
+      .iv18 0x0000
+      .iv17 0x0000
+      .iv16 0x0000
 
 ##2.2 Comment
 Commment is a start semicolon(;) .
