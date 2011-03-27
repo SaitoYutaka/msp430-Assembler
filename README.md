@@ -1,9 +1,11 @@
 ##msp430 tiny assembler
 This script require python version 3.
+
 Usage : python asm.py [file]
 
 ##1. What is msp430 tiny assembler?
 The msp430 tiny assembler is a small assembler (written by python).
+
 This assembler convert a assembly lauguage source file to intel hex format.
 
 
@@ -53,12 +55,16 @@ assume the program begins at when it is loaded into flash memory.
 
 ##2.5 .iv31 ...  .iv16 : Interrupt vector
 .iv[num]: Interrupt Vector[Priority]
+
 The .iv31, .iv30 , .iv29 ,,,, .iv16 directives are to specify the interrupt vector address.
 
 ##2.6 Instructions
 Msp430 tiny assembler is supported those instructions.
+
 RRC[.B], SWPB, RRA[.B], SXT, PUSH[.B], CALL, RETI, JNE, JNZ, JEQ,
+
 JZ, JNC, JC, JN, JG, JL, JMP, MOV[.B], ADD[.B], ADDC[.B], SUBC[.B], SUB[.B]
+
 CMP[.B], DADD[.B], BIT[.B], BIC[.B], BIS[.B], XOR[.B], AND[.B]
 
 It doesn't support emulated instructions such as NOP, RET and DEC.
