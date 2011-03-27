@@ -63,11 +63,11 @@ def Preprocess(lines):
         tmp = line
         for reg in msp430x2xx_registers.registers.keys():
             if reg in line:
-                tmp = line.replace(reg,str(msp430x2xx_registers.registers[reg]))
+                tmp = line.replace(reg,'0x'+'{0:04x}'.format(msp430x2xx_registers.registers[reg]))
                 break
         for reg in msp430x2xx_registers.registers.keys():
             if reg in line:
-                tmp = tmp.replace(reg,str(msp430x2xx_registers.registers[reg]))
+                tmp = line.replace(reg,'0x'+'{0:04x}'.format(msp430x2xx_registers.registers[reg]))
                 break
         ret.append(tmp)
     return ret
@@ -153,18 +153,23 @@ AsmDirect.GetAsmDirectives(lines_after_p)
 
 # Assemble all line
 # Make assembleInfo
-# assembleInfo =[ SOURCE,LABEL,LABEL ADDRESS,ADDRESS,OPCODE ]
+# assembleInfo =[ LINE, LINE_PREP, LINE_LABEL2SDDR, LABEL, LABEL ADDRESS, ADDRESS, OPCODE ]
 assembleInfo = []
 lineno = 1   
 address = AsmDirect.ORG
 MSP430x2xx = msp430x2xx.MSP430x2xx()
+
+def setAsmInfo(LINE='', LINE_PREP='', LINE_LABEL2SDDR='', 
+               LABEL='', LABEL_ADDR='', ADDR='', OPCODE=''):
+    assembleInfo.append([ LINE, LINE_PREP, LINE_LABEL2SDDR, LABEL, LABEL_ADDR, ADDR, OPCODE ])
 
 for line, dline in zip(lines_after_p, lines):
 
     # Skip only new line in line , comment and assembler directives
     if line == '' or line[0] == ';' or line[0] == '.':
         if '.org' in line:
-            assembleInfo.append([line,'','','',''])
+            setAsmInfo(LINE=line,LINE_PREP=line)
+            #assembleInfo.append([line,'','','',''])
         lineno += 1
         continue
 
@@ -172,7 +177,8 @@ for line, dline in zip(lines_after_p, lines):
     if line[-1] == ':' :
         l.SetAddress(line, address)
         lineno += 1
-        assembleInfo.append([line,'','','',''])
+        setAsmInfo(LINE=line,LINE_PREP=line)
+        #assembleInfo.append([line,'','','',''])
         continue
 
     # Convert label to dummy address(0x0000)
@@ -192,29 +198,33 @@ for line, dline in zip(lines_after_p, lines):
         print(' line:' + str(lineno))
         sys.exit()
 
-    assembleInfo.append([dline,rLabel,'',address,opcode])
+    setAsmInfo(LINE=dline, LINE_PREP=line,
+               LABEL=rLabel, ADDR=address, OPCODE=opcode)
+    
+    #assembleInfo.append([dline,rLabel,'',address,opcode])
 
     for byte in opcode:address += 2
 
     lineno += 1
 
 # Assemble lines which include label
-SOURCE,LABEL,L_ADDRESS,ADDRESS,OPCODE = range(5)
+LINE, LINE_PREP, LINE_LABEL2SDDR, LABEL, LABEL_ADDR, ADDR, OPCODE = range(7)
+#SOURCE,LABEL,L_ADDRESS,ADDRESS,OPCODE = range(5)
 
 def isJumps():
     jmps = ("jne","jnz", "jeq", "jz", "jnc", "jc", "jn",
             "jge", "jl", "jmp")
     for x in jmps:
-        if x in asminfo[SOURCE] or x.upper() in asminfo[SOURCE]:
-            if asminfo[ADDRESS] + 1 < l.d[asminfo[LABEL]]:
-                offset = int((l.d[asminfo[LABEL]] - (asminfo[ADDRESS] + 1))/2)
+        if x in asminfo[LINE] or x.upper() in asminfo[LINE]:
+            if asminfo[ADDR] + 1 < l.d[asminfo[LABEL]]:
+                offset = int((l.d[asminfo[LABEL]] - (asminfo[ADDR] + 1))/2)
                 stroffset = '0x' + '{0:03x}'.format(offset)
             else:
-                offset = (asminfo[ADDRESS] + 1) - l.d[asminfo[LABEL]]
+                offset = (asminfo[ADDR] + 1) - l.d[asminfo[LABEL]]
                 offset = int(offset * -1 / 2) - 1
                 stroffset = '0x' + '{0:03x}'.format(0x3ff & ~(offset * -1) + 1)
 
-            opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],stroffset))
+            opcode = MSP430x2xx.asm(asminfo[LINE].replace(asminfo[LABEL],stroffset))
             assembleInfo[i][OPCODE] = opcode
 
             return True
@@ -225,10 +235,10 @@ for i, asminfo in enumerate(assembleInfo):
     if asminfo[LABEL] != '':
         if isJumps(): continue
 
-        opcode = MSP430x2xx.asm(asminfo[SOURCE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
+        opcode = MSP430x2xx.asm(asminfo[LINE].replace(asminfo[LABEL],str(l.d[asminfo[LABEL]])))
         assembleInfo[i][OPCODE] = opcode
-    elif asminfo[SOURCE][-1] == ':':
-        assembleInfo[i][L_ADDRESS] = l.d[asminfo[SOURCE][:-1]]
+    elif asminfo[LINE][-1] == ':':
+        assembleInfo[i][LABEL_ADDR] = l.d[asminfo[LINE][:-1]]
 
 # Get interrupt vector address
 for i, x in enumerate(AsmDirect.INTERRUPT_VECTOR):
@@ -241,15 +251,15 @@ if options.debug != None:
     print('{:<26}'.format('Source'),end='')
     print('Machine code(Hex)')
     for data in assembleInfo:
-        if data[ADDRESS] != '':
-            print('{0:#x}'.format(data[ADDRESS],),end='  ')
-            print('{:<25}'.format(data[SOURCE],),end='')
+        if data[ADDR] != '':
+            print('{0:#x}'.format(data[ADDR],),end='  ')
+            print('{:<25}'.format(data[LINE],),end='')
             for j in data[OPCODE]:
                 print(' ' + '{0:04x}'.format(j) + ' ',end='')
             print()
         else:
             print('        ',end='')
-            print(data[SOURCE])
+            print(data[LINE])
     sys.exit()
 
 # step assemble mode

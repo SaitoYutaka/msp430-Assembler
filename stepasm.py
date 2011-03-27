@@ -2,18 +2,19 @@ import random, string, traceback
 import curses
 
 class StepAssemble(object):
-    def __init__(self, scr, char=ord('*'), ainfo=[]):
-        self.state = {}
+    def __init__(self, scr, ainfo=[]):
+
         self.scr = scr
-        Y, X = self.scr.getmaxyx()
-        self.X, self.Y = X-2, Y-2-1
-        self.char = char
+
+
         self.scr.clear()
-        self.SOURCE,self.LABEL,self.L_ADDRESS,self.ADDRESS,self.OPCODE = range(5)
+        self.LINE, self.LINE_PREP, self.LINE_LABEL2SDDR, self.LABEL, self.LABEL_ADDR, self.ADDR, self.OPCODE = range(7)
+        #self.SOURCE,self.LABEL,self.L_ADDRESS,self.ADDRESS,self.OPCODE = range(5)
         self.ainfo = ainfo
 
         self.posx = 1
         self.lineno = 0
+        self.step = 0
 
         head_line = 'source                    address  machine code           note'
 
@@ -24,24 +25,36 @@ class StepAssemble(object):
 
         n = 1
         for s in self.ainfo:
-             self.scr.addstr(n, 0, s[0])
+             self.scr.addstr(n, 0, s[self.LINE])
              n += 1
+        self.step = 1
 
         self.scr.refresh()
 
+    def preprocess(self):
+        n = 1
+        for s in self.ainfo:
+             self.scr.addstr(n, 0, s[self.LINE_PREP]+'       ')
+             n += 1
+        self.scr.refresh()
+        self.step = 0
+
     def next(self):
+        if self.step == 1:
+            self.preprocess()
+            return
         if len(self.ainfo) <= self.lineno:return
-        if '.org' in self.ainfo[self.lineno][self.SOURCE]:
+        if '.org' in self.ainfo[self.lineno][self.LINE]:
             # note
             self.scr.attrset(curses.color_pair(4))
             self.scr.addstr(self.posx, 58, '; Set origin address')
-        elif self.ainfo[self.lineno][self.SOURCE][-1] == ':':
+        elif self.ainfo[self.lineno][self.LINE][-1] == ':':
             self.scr.attrset(curses.color_pair(4))
-            self.scr.addstr(self.posx, 58, '; Address:'+ '0x'+'{0:04x}'.format(self.ainfo[self.lineno][self.L_ADDRESS]))
-        elif self.ainfo[self.lineno][self.ADDRESS] != '':
+            self.scr.addstr(self.posx, 58, '; Address:'+ '0x'+'{0:04x}'.format(self.ainfo[self.lineno][self.LABEL_ADDR]))
+        elif self.ainfo[self.lineno][self.ADDR] != '':
             self.scr.attrset(curses.color_pair(5))
             # address
-            self.scr.addstr(self.posx, 26, '{0:#x}'.format(self.ainfo[self.lineno][self.ADDRESS]))
+            self.scr.addstr(self.posx, 26, '{0:#x}'.format(self.ainfo[self.lineno][self.ADDR]))
 
             # machine code
             n = 0
@@ -81,10 +94,7 @@ def keyloop(stdscr,asminfo):
 
     # Allocate a subwindow for the Life board and create the board object
     subwin = stdscr.subwin(stdscr_y-3, stdscr_x, 0, 0)
-    stepasm = StepAssemble(subwin, char=ord('*'), ainfo = asminfo)
-
-    # xpos, ypos are the cursor's position
-    xpos, ypos = stepasm.X//2, stepasm.Y//2
+    stepasm = StepAssemble(subwin, ainfo = asminfo)
 
     # Main loop:
     while (1):
