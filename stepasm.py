@@ -31,17 +31,25 @@ class StepAssemble(object):
 
         self.scr.refresh()
 
-    def preprocess(self):
+    def preprocess(self,step='next'):
         n = 1
+
         for s in self.ainfo:
-             self.scr.addstr(n, 0, s[self.LINE_PREP]+'       ')
-             n += 1
+            if s[self.LINE_PREP] != s[self.LINE]:
+                if step=='next':
+                    self.scr.attrset(curses.color_pair(4))
+                    self.scr.addstr(n, 0, s[self.LINE_PREP]+'       ')
+                else:
+                    self.scr.attrset(curses.color_pair(5))
+                    self.scr.addstr(n, 0, s[self.LINE]+'       ')
+            n += 1
         self.scr.refresh()
-        self.step = 0
+
 
     def next(self):
         if self.step == 1:
-            self.preprocess()
+            self.preprocess(step='next')
+            self.step = 0
             return
         if len(self.ainfo) <= self.lineno:return
         if '.org' in self.ainfo[self.lineno][self.LINE]:
@@ -69,6 +77,10 @@ class StepAssemble(object):
         if self.posx != 1:
             self.lineno -= 1
             self.posx -= 1
+        elif self.posx == 1:
+            self.preprocess(step='prev')
+            self.step = 1
+            return
         self.scr.addstr(self.posx, 26, ' '*60)
         self.scr.refresh()
 
