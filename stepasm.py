@@ -45,6 +45,16 @@ class StepAssemble(object):
             n += 1
         self.scr.refresh()
 
+    def label2addr(self):
+        pass
+
+    def isIncludeLABEL(self, line):
+        if line[-1] == ':':return ''
+        for label in self.ainfo:
+            if label[self.LINE][-1] == ':':
+                if label[self.LINE][:-1] in line:
+                    return label[self.LINE]
+        return ''
 
     def next(self):
         if self.step == 1:
@@ -52,10 +62,17 @@ class StepAssemble(object):
             self.step = 0
             return
         if len(self.ainfo) <= self.lineno:return
+
         if '.org' in self.ainfo[self.lineno][self.LINE]:
             # note
             self.scr.attrset(curses.color_pair(4))
             self.scr.addstr(self.posx, 58, '; Set origin address')
+
+        elif self.isIncludeLABEL(self.ainfo[self.lineno][self.LINE]) != '':
+            self.scr.attrset(curses.color_pair(5))
+            self.scr.addstr(self.posx, 26, 'label')
+            self.scr.refresh()
+
         elif self.ainfo[self.lineno][self.LINE][-1] == ':':
             self.scr.attrset(curses.color_pair(4))
             self.scr.addstr(self.posx, 58, '; Address:'+ '0x'+'{0:04x}'.format(self.ainfo[self.lineno][self.LABEL_ADDR]))
